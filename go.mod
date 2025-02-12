@@ -1,6 +1,6 @@
 module github.com/scott-mescudi/stegano
 
-go 1.23.3
+go 1.24.0
 
 require (
 	github.com/go-audio/audio v1.0.0
