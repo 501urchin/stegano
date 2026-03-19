@@ -32,3 +32,5 @@ go.work.sum
 /cgo_tests
 /c_impl
 /c
+
+.DS_Store
