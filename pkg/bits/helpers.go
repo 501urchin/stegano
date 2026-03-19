@@ -1,3 +1,4 @@
+// Package bits provides helpers for bitwise operations
 package bits
 
 import "fmt"
