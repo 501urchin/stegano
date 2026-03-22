@@ -9,6 +9,16 @@ type pngChunk struct {
 	CRC          uint32
 }
 
+type PngInfo struct {
+	Width       uint32
+	Height      uint32
+	BitDepth    uint8
+	ColorType   uint8
+	Compression uint8
+	Filter      uint8
+	Interlace   uint8
+}
+
 var (
 	pngSignature                 = []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}
 	ErrorFailedToReadNBytes      = errors.New("failed to read the exact amount of bytes from stream")
@@ -18,4 +28,5 @@ var (
 	ErrFailedToSeek              = errors.New("failed seek png at index: ")
 	ErrFailedToReadCRC           = errors.New("failed to read png chunk crc: ")
 	ErrFailedToReadSignature     = errors.New("failed to read 8 byte png signature: ")
+	ErrNotIHDR                   = errors.New("data is not valid for IHDR")
 )
