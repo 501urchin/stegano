@@ -2,7 +2,7 @@ package png
 
 import "errors"
 
-type pngChunk struct {
+type PngChunk struct {
 	Length       uint32
 	Type         []byte
 	DataStartIdx int // start index of the data line relative to the start of the file

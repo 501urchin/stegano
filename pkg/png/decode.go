@@ -9,11 +9,11 @@ import (
 	"slices"
 )
 
-func DecodePNG(file io.ReadSeeker) (chunks []pngChunk, err error) {
+func DecodePNG(file io.ReadSeeker) (chunks []PngChunk, err error) {
 	if file == nil {
 		return nil, ErrNotPNG
 	}
-	
+
 	var buf = make([]byte, 8)
 	_, err = io.ReadFull(file, buf)
 	if err != nil {
@@ -30,7 +30,7 @@ func DecodePNG(file io.ReadSeeker) (chunks []pngChunk, err error) {
 			return chunks, errors.Join(ErrFailedToReadTypeAndLength, err)
 		}
 
-		c := pngChunk{
+		c := PngChunk{
 			Length: binary.BigEndian.Uint32(buf[:4]),
 			Type:   append([]byte(nil), buf[4:8]...),
 		}
