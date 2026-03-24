@@ -11,6 +11,8 @@ type PngEncoder struct {
 	carrier  io.ReadSeeker
 	out      io.Writer
 	bitdepth types.BitIndex
+	capacity int
+	written  int
 }
 
 var (
@@ -34,10 +36,16 @@ func NewPngEncoder(carrier io.ReadSeeker, out io.Writer, bitdepth ...types.BitIn
 		enc.bitdepth = types.BitOne
 	}
 
+	// We could get the chunks beforehand
+	// chunks, err = png.DecodePNG(carrier)
+	// if err != nil {
+	// 	return
+	// }
+
 	return enc, nil
 }
+func (e *PngEncoder) Capacity() int64  { return int64(e.capacity) }
+func (e *PngEncoder) Remaining() int64 { return int64(e.capacity) - int64(e.written) }
 
 func (e *PngEncoder) Write(data []byte) (written int, err error) { return }
-func (e *PngEncoder) Capacity() int64                            { return 0 }
-func (e *PngEncoder) Remaining() int64                           { return 0 }
 func (e *PngEncoder) Close() (err error)                         { return }
