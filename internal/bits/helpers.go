@@ -1,11 +1,8 @@
 // Package bits provides helpers for bitwise operations
 package bits
 
-import "fmt"
-
-const (
-	BitZero = 0x00
-	BitOne  = 0x01
+import (
+	"fmt"
 )
 
 // At gets the bit at b[idx] and returns it
