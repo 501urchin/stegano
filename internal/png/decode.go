@@ -20,7 +20,7 @@ func DecodePNG(file io.ReadSeeker) (chunks []PngChunk, err error) {
 		return nil, errors.Join(ErrFailedToReadSignature, err)
 	}
 
-	if !slices.Equal(buf, pngSignature) {
+	if !slices.Equal(buf, PngSignature) {
 		return nil, ErrNotPNG
 	}
 

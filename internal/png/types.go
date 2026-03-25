@@ -20,7 +20,7 @@ type PngInfo struct {
 }
 
 var (
-	pngSignature                 = []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}
+	PngSignature                 = []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}
 	ErrorFailedToReadNBytes      = errors.New("failed to read the exact amount of bytes from stream")
 	ErrCRCMismatch               = errors.New("crc doesnt match data and type")
 	ErrNotPNG                    = errors.New("file does not have a valid png signature")

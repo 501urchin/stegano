@@ -54,7 +54,7 @@ func encode(newFileName, oldFileName string, chunks []PngChunk) (err error) {
 	}
 	defer oldFile.Close()
 
-	_, err = newFile.Write(pngSignature)
+	_, err = newFile.Write(PngSignature)
 	if err != nil {
 		return err
 	}

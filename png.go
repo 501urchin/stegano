@@ -2,17 +2,21 @@ package stegano
 
 import (
 	"errors"
+	"fmt"
 	"io"
 
+	"github.com/501urchin/stegano/v2/internal/png"
 	"github.com/501urchin/stegano/v2/pkg/types"
 )
 
 type PngEncoder struct {
-	carrier  io.ReadSeeker
-	out      io.Writer
-	bitdepth types.BitIndex
-	capacity int
-	written  int
+	carrier             io.ReadSeeker
+	carrierChunks       []png.PngChunk
+	out                 io.Writer
+	bitdepth            types.BitIndex
+	operatingChunkIndex int
+	capacity            int
+	written             int
 }
 
 var (
@@ -36,16 +40,34 @@ func NewPngEncoder(carrier io.ReadSeeker, out io.Writer, bitdepth ...types.BitIn
 		enc.bitdepth = types.BitOne
 	}
 
-	// We could get the chunks beforehand
-	// chunks, err = png.DecodePNG(carrier)
-	// if err != nil {
-	// 	return
-	// }
+	chunks, err := png.DecodePNG(carrier)
+	if err != nil {
+		return
+	}
+	enc.carrierChunks = chunks
+
+	for _, c := range chunks {
+		if string(c.Type) == "IDAT" {
+			enc.capacity += int(c.Length) / 8
+		}
+	}
+
+	written, err := out.Write(png.PngSignature)
+	if err != nil || written != 8 {
+		return nil, fmt.Errorf("failed to write png header to out: %v", err)
+	}
+
+	err = png.WriteChunk(chunks[0], carrier, out)
+	if err != nil {
+		return
+	}
+
+	enc.operatingChunkIndex++
 
 	return enc, nil
 }
-func (e *PngEncoder) Capacity() int64  { return int64(e.capacity) }
-func (e *PngEncoder) Remaining() int64 { return int64(e.capacity) - int64(e.written) }
+func (e *PngEncoder) Capacity() int64    { return int64(e.capacity) }
+func (e *PngEncoder) Remaining() int64   { return int64(e.capacity) - int64(e.written) }
+func (e *PngEncoder) Close() (err error) { return }
 
 func (e *PngEncoder) Write(data []byte) (written int, err error) { return }
-func (e *PngEncoder) Close() (err error)                         { return }
