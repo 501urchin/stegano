@@ -24,7 +24,7 @@ func TestWriteChunk(t *testing.T) {
 	expecting := []byte{0, 0, 0, 2, 73, 68, 65, 84, 1, 2, 139, 238, 237, 215}
 
 	if !slices.Equal(out.Bytes(), expecting) {
-		t.Error("result didnt match expecting")
+		t.Errorf("result didnt match expecting: \n%v\n%v\n", expecting, out.Bytes())
 	}
 
 }

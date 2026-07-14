@@ -19,11 +19,9 @@ func WriteChunk(source io.ReadSeeker, out io.Writer, chunks ...PngChunk) (err er
 		}
 	}
 
-	buf := make([]byte, max(biggestChunkLen, 4))
-
 	for _, chunk := range chunks {
-		binary.BigEndian.PutUint32(buf, chunk.Length)
-		_, err = out.Write(buf[:4])
+		// write chunk len and type
+		_, err = out.Write(binary.BigEndian.AppendUint32(nil, chunk.Length))
 		if err != nil {
 			return
 		}
@@ -33,36 +31,35 @@ func WriteChunk(source io.ReadSeeker, out io.Writer, chunks ...PngChunk) (err er
 			return
 		}
 
+		// copy data from src to dst
 		_, err = source.Seek(int64(chunk.DataStartIdx), io.SeekStart)
 		if err != nil {
 			return
 		}
 
-		_, err = io.ReadFull(source, buf[:chunk.Length])
+		_, err = io.CopyN(out, source, int64(chunk.Length))
 		if err != nil {
 			return
 		}
 
-		_, err = out.Write(buf[:chunk.Length])
-		if err != nil {
-			return
-		}
-
+		// write crc
 		h := crc32.NewIEEE()
 		_, err = h.Write(chunk.Type)
 		if err != nil {
 			return
 		}
 
-		_, err = h.Write(buf[:chunk.Length])
+		_, err = source.Seek(int64(chunk.DataStartIdx), io.SeekStart)
 		if err != nil {
 			return
 		}
 
-		buf = buf[:0]
-		buf = h.Sum(buf)
+		_, err = io.CopyN(h, source, int64(chunk.Length))
+		if err != nil {
+			return
+		}
 
-		_, err = out.Write(buf[:4])
+		_, err = out.Write(h.Sum(nil))
 		if err != nil {
 			return
 		}
