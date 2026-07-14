@@ -91,7 +91,7 @@ func encode(newFileName, oldFileName string, chunks []PngChunk) (err error) {
 	return nil
 }
 
-func TestDecodePNG(t *testing.T) {
+func TestParsePNG(t *testing.T) {
 	tFilePath := filepath.Join(t.TempDir(), "test.png")
 	err := makePng(tFilePath, 5, 5)
 	if err != nil {
@@ -105,7 +105,7 @@ func TestDecodePNG(t *testing.T) {
 	defer file.Close()
 
 	t.Run("valid decode", func(t *testing.T) {
-		chunks, err := DecodePNG(file)
+		chunks, err := ParsePNG(file)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -133,7 +133,7 @@ func TestDecodePNG(t *testing.T) {
 
 }
 
-func BenchmarkDecodePNG(b *testing.B) {
+func BenchmarkParsePNG(b *testing.B) {
 	file, err := os.Open("image.png")
 	if err != nil {
 		panic(err)
@@ -142,7 +142,7 @@ func BenchmarkDecodePNG(b *testing.B) {
 	b.Run("custom", func(b *testing.B) {
 		for b.Loop() {
 			_, _ = file.Seek(0, io.SeekStart)
-			_, err = DecodePNG(file)
+			_, err = ParsePNG(file)
 			if err != nil {
 				b.Fatal(err)
 			}

@@ -2,6 +2,7 @@ package png
 
 import "encoding/binary"
 
+// TODO: write test
 func ParseIHDRChunk(data []byte) (d PngInfo, err error) {
 	if len(data) != 13 {
 		return d, ErrNotIHDR

@@ -6,6 +6,7 @@ import (
 	"io"
 )
 
+// TODO: refactor
 func WriteChunk(source io.ReadSeeker, out io.Writer, chunks ...PngChunk) (err error) {
 	if len(chunks) == 0 {
 		return
