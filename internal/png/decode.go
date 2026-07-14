@@ -46,7 +46,7 @@ func DecodePNG(file io.ReadSeeker) (chunks []PngChunk, err error) {
 		if err != nil {
 			return chunks, errors.Join(ErrFailedToSeek, err)
 		}
-
+		
 		_, err = io.ReadFull(file, buf[:4])
 		if err != nil {
 			return chunks, errors.Join(ErrFailedToReadCRC, err)
