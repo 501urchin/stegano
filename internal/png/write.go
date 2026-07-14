@@ -6,17 +6,9 @@ import (
 	"io"
 )
 
-// TODO: refactor
 func WriteChunk(source io.ReadSeeker, out io.Writer, chunks ...PngChunk) (err error) {
 	if len(chunks) == 0 {
 		return
-	}
-
-	var biggestChunkLen int
-	for _, c := range chunks {
-		if c.Length > uint32(biggestChunkLen) {
-			biggestChunkLen = int(c.Length)
-		}
 	}
 
 	for _, chunk := range chunks {
@@ -42,7 +34,7 @@ func WriteChunk(source io.ReadSeeker, out io.Writer, chunks ...PngChunk) (err er
 			return
 		}
 
-		// write crc
+		// calc and write crc
 		h := crc32.NewIEEE()
 		_, err = h.Write(chunk.Type)
 		if err != nil {
