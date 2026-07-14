@@ -1,6 +1,7 @@
 package png
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"image"
@@ -89,6 +90,21 @@ func encode(newFileName, oldFileName string, chunks []PngChunk) (err error) {
 	}
 
 	return nil
+}
+
+func TestValidateChunk(t *testing.T) {
+	source := bytes.NewReader([]byte{1, 2})
+	c := PngChunk{
+		Length:       2,
+		Type:         []byte("IDAT"),
+		DataStartIdx: 0,
+		CRC:          2347691479,
+	}
+
+	err := validateChunk(c, source)
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestParsePNG(t *testing.T) {

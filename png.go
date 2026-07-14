@@ -32,7 +32,5 @@ func NewPngEncoder(src io.ReadSeeker, dst io.WriteSeeker, bitDepth ...types.BitI
 
 func (e *PngEncoder) Close() (err error)
 
-// TODO: remember png idat capacity is influenced by bit depth in the ihdr header.
-// TODO: some pngs can be 16 bit per channel or 1 bit per channel.
-// TODO: factor this in when processing the idat lines and encoding the bits
+// TODO: remember png idat capacity is influenced by bit depth in the ihdr header. some pngs can be 16 bit per channel or 1 bit per channel. factor this in when processing the idat lines and encoding the bits
 func (e *PngEncoder) Write(data []byte)

@@ -41,7 +41,6 @@ func BenchmarkWriteChunk(b *testing.B) {
 		Length:       1 << 20,
 		Type:         []byte("IDAT"),
 		DataStartIdx: 0,
-		CRC:          2,
 	}
 	out := bytes.NewBuffer(nil)
 

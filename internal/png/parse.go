@@ -9,39 +9,31 @@ import (
 	"slices"
 )
 
-func validateChunks(chunks []PngChunk, file io.ReadSeeker, biggestChunkLen int) (err error) {
-	dataBuf := make([]byte, biggestChunkLen)
+func validateChunk(chunk PngChunk, file io.ReadSeeker) (err error) {
 	h := crc32.NewIEEE()
-	for _, c := range chunks {
-		_, err = file.Seek(int64(c.DataStartIdx), io.SeekStart)
-		if err != nil {
-			return
-		}
 
-		_, err = io.ReadFull(file, dataBuf[:c.Length])
-		if err != nil {
-			return
-		}
+	_, err = file.Seek(int64(chunk.DataStartIdx), io.SeekStart)
+	if err != nil {
+		return
+	}
 
-		h.Reset()
-		_, err = h.Write(c.Type)
-		if err != nil {
-			return
-		}
+	h.Reset()
+	_, err = h.Write(chunk.Type)
+	if err != nil {
+		return
+	}
 
-		_, err = h.Write(dataBuf[:c.Length])
-		if err != nil {
-			return
-		}
+	_, err = io.CopyN(h, file, int64(chunk.Length))
+	if err != nil {
+		return
+	}
 
-		if h.Sum32() != c.CRC {
-			return ErrCRCMismatch
-		}
+	if h.Sum32() != chunk.CRC {
+		return ErrCRCMismatch
 	}
 
 	return nil
 }
-
 
 func ParsePNG(file io.ReadSeeker) (chunks []PngChunk, err error) {
 	if file == nil {
@@ -106,7 +98,12 @@ func ParsePNG(file io.ReadSeeker) (chunks []PngChunk, err error) {
 		}
 	}
 
-	err = validateChunks(chunks, file, biggestChunkLen)
+	for _, c := range chunks {
+		err = validateChunk(c, file)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	return
 }
