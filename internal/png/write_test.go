@@ -2,6 +2,7 @@ package png
 
 import (
 	"bytes"
+	"crypto/rand"
 	"slices"
 	"testing"
 )
@@ -30,15 +31,21 @@ func TestWriteChunk(t *testing.T) {
 }
 
 func BenchmarkWriteChunk(b *testing.B) {
+	data := make([]byte, 1 << 20)
+	_, err := rand.Read(data)
+	if err != nil {
+		b.Fatal(err)
+	}
 	source := bytes.NewReader([]byte{1, 2})
 	c := PngChunk{
-		Length:       2,
+		Length:       1 << 20,
 		Type:         []byte("IDAT"),
 		DataStartIdx: 0,
 		CRC:          2,
 	}
 	out := bytes.NewBuffer(nil)
 
+	b.ResetTimer()
 	for b.Loop() {
 		_ = WriteChunk(source, out, c)
 	}
