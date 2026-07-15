@@ -18,6 +18,7 @@ type PngEncoder struct {
 	embeddingCapacity int64 // bytes
 	remainigCapacity  int64 // bytes
 
+	currentChunk int
 	// TODO: add a field to track which idat chunk we operating on
 	// TODO: add a reuseable buffer where we can store the idat line chunk
 }
@@ -26,8 +27,9 @@ func (e *PngEncoder) Capacity() int64 {
 	return e.embeddingCapacity
 }
 
-func (e *PngEncoder) Remaining() int64
+// func (e *PngEncoder) Remaining() int64
 func NewPngEncoder(src io.ReadSeeker, dst io.WriteSeeker, bitDepth types.BitIndex) (enc *PngEncoder, err error) {
+
 	if bitDepth > 7 {
 		return nil, errors.ErrInvalidBitDepth
 	}
@@ -42,6 +44,8 @@ func NewPngEncoder(src io.ReadSeeker, dst io.WriteSeeker, bitDepth types.BitInde
 
 	enc = &PngEncoder{
 		embeddingDepth: bitDepth,
+		src: src,
+		dst: dst,
 	}
 
 	enc.chunks, err = png.ParsePNG(src)
@@ -81,19 +85,30 @@ func NewPngEncoder(src io.ReadSeeker, dst io.WriteSeeker, bitDepth types.BitInde
 	if err != nil {
 		return
 	}
+
 	for i := 0; i < firstIDATChunk; i++ {
 		err = png.WriteChunk(src, dst, enc.chunks[i])
 		if err != nil {
 			return nil, errors.ErrFailedToWriteChunk
 		}
 	}
+	enc.currentChunk = firstIDATChunk
 
-
-	// TODO: prepare encode for embedding
 	return
 }
 
-func (e *PngEncoder) Close() (err error)
+func (e *PngEncoder) Flush() (err error) {
+	for i := e.currentChunk; i < len(e.chunks); i++ {
+		err = png.WriteChunk(e.src, e.dst, e.chunks[i])
+		if err != nil {
+			return errors.ErrFailedToWriteChunk
+		}
+	}
+
+	return
+}
 
 // TODO: remember png idat capacity is influenced by bit depth in the ihdr header. some pngs can be 16 bit per channel or 1 bit per channel. factor this in when processing the idat lines and encoding the bits
-func (e *PngEncoder) Write(data []byte)
+// func (e *PngEncoder) Write(p []byte) (n int, err error) {
+// 	return
+// }

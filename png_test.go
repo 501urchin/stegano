@@ -24,8 +24,9 @@ func TestPngEncode(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	err = enc.Close()
+
+	err = enc.Flush()
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 }
