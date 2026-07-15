@@ -15,10 +15,16 @@ type PngEncoder struct {
 	chunks            []png.PngChunk
 	embeddingDepth    types.BitIndex
 	pngInfo           png.PngInfo
-	embeddingCapacity int
+	embeddingCapacity int64 // bytes
+	remainigCapacity  int64 // bytes
+
+	// TODO: add a field to track which idat chunk we operating on
+	// TODO: add a reuseable buffer where we can store the idat line chunk
 }
 
-func (e *PngEncoder) Capacity() int64
+func (e *PngEncoder) Capacity() int64 {
+	return e.embeddingCapacity
+}
 
 func (e *PngEncoder) Remaining() int64
 func NewPngEncoder(src io.ReadSeeker, dst io.WriteSeeker, bitDepth types.BitIndex) (enc *PngEncoder, err error) {
@@ -57,14 +63,33 @@ func NewPngEncoder(src io.ReadSeeker, dst io.WriteSeeker, bitDepth types.BitInde
 		return nil, errors.ErrBitDepthTooHigh
 	}
 
-	
+	firstIDATChunk := -1
+	for i, c := range enc.chunks {
+		if !slices.Equal(c.Type, types.IDAT) {
+			continue
+		}
 
-	for _, c := enc.chunks {
-		if c.
+		if firstIDATChunk == -1 {
+			firstIDATChunk = i
+		}
+
+		enc.embeddingCapacity += int64(c.Length / 8)
+	}
+	enc.remainigCapacity = enc.embeddingCapacity
+
+	_, err = dst.Write(png.PngSignature)
+	if err != nil {
+		return
+	}
+	for i := 0; i < firstIDATChunk; i++ {
+		err = png.WriteChunk(src, dst, enc.chunks[i])
+		if err != nil {
+			return nil, errors.ErrFailedToWriteChunk
+		}
 	}
 
-	// TODO: get steganography capacity. each rgb pixel can hold 1 bit
-	// TODO: write png, ihdr and any other header before the first idat to the dst
+
+	// TODO: prepare encode for embedding
 	return
 }
 
