@@ -1,30 +1,62 @@
 package stegano
 
 import (
-	"errors"
 	"io"
+	"slices"
 
 	"github.com/501urchin/stegano/v2/internal/png"
+	"github.com/501urchin/stegano/v2/pkg/errors"
 	"github.com/501urchin/stegano/v2/pkg/types"
 )
 
 type PngEncoder struct {
-	src    io.ReadSeeker
-	chunks []png.PngChunk
-	dst    io.WriteSeeker
-
-	bitDepth types.BitIndex
+	src            io.ReadSeeker
+	dst            io.WriteSeeker
+	chunks         []png.PngChunk
+	embeddingDepth types.BitIndex
+	pngInfo        png.PngInfo
 }
-
-var (
-	ErrInvalidBitDepth = errors.New("invalid bit depth")
-)
 
 func (e *PngEncoder) Capacity() int64
 
 func (e *PngEncoder) Remaining() int64
-func NewPngEncoder(src io.ReadSeeker, dst io.WriteSeeker, bitDepth ...types.BitIndex) (enc *PngEncoder, err error) {
-	// TODO: validate bit depth
+func NewPngEncoder(src io.ReadSeeker, dst io.WriteSeeker, bitDepth types.BitIndex) (enc *PngEncoder, err error) {
+	if bitDepth > 7 {
+		return nil, errors.ErrInvalidBitDepth
+	}
+
+	if src == nil {
+		return nil, errors.ErrSrcIsNil
+	}
+
+	if dst == nil {
+		return nil, errors.ErrDstIsNil
+	}
+
+	enc = &PngEncoder{
+		embeddingDepth: bitDepth,
+	}
+
+	enc.chunks, err = png.ParsePNG(src)
+	if err != nil {
+		return
+	}
+
+	if !slices.Equal(enc.chunks[0].Type, types.IHDR) {
+		return nil, errors.ErrMissingIHDR
+	}
+
+	pngInfo, err := png.ParseIHDRChunk(src, enc.chunks[0])
+	if err != nil {
+		return
+	}
+
+	if uint8(bitDepth) > pngInfo.BitDepth-1 {
+		return nil, errors.ErrBitDepthTooHigh
+	}
+
+	enc.pngInfo = pngInfo
+
 	// TODO: get steganography capacity. each rgb pixel can hold 1 bit
 	// TODO: write png, ihdr and any other header before the first idat to the dst
 	return

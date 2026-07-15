@@ -107,3 +107,29 @@ func ParsePNG(file io.ReadSeeker) (chunks []PngChunk, err error) {
 
 	return
 }
+
+func GetChunkData(src io.ReadSeeker, c PngChunk) (data []byte, err error) {
+	if src == nil {
+		return nil, ErrSourceIsNil
+	}
+
+
+
+	if c.Length == 0 {
+		return nil, ErrInvalidChunk
+	}
+
+	_, err = src.Seek(int64(c.DataStartIdx), io.SeekStart)
+	if err != nil {
+		return nil, errors.Join(ErrFailedToSeek, err)
+	}
+
+	data = make([]byte, c.Length)
+
+	_, err = io.ReadFull(src, data)
+	if err != nil {
+		return nil, errors.Join(ErrFailedToReadChunkData, err)
+	}
+
+	return data, nil
+}

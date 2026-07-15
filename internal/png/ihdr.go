@@ -1,11 +1,15 @@
 package png
 
-import "encoding/binary"
+import (
+	"encoding/binary"
+	"io"
+)
 
 // ParseIHDRChunk takes in the data line of the IHDR chunk
-func ParseIHDRChunk(data []byte) (PngInfo, error) {
-	if len(data) != 13 {
-		return PngInfo{}, ErrNotIHDR
+func ParseIHDRChunk(src io.ReadSeeker, c PngChunk) (PngInfo, error) {
+	data, err := GetChunkData(src, c)
+	if err != nil {
+		return PngInfo{}, err
 	}
 
 	info := PngInfo{
@@ -24,7 +28,7 @@ func ParseIHDRChunk(data []byte) (PngInfo, error) {
 	default:
 		return PngInfo{}, ErrInvalidPNGBitDepth
 	}
-	
+
 	switch info.ColorType {
 	case 0, 2, 3, 4, 6:
 		break
