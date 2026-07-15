@@ -10,11 +10,12 @@ import (
 )
 
 type PngEncoder struct {
-	src            io.ReadSeeker
-	dst            io.WriteSeeker
-	chunks         []png.PngChunk
-	embeddingDepth types.BitIndex
-	pngInfo        png.PngInfo
+	src               io.ReadSeeker
+	dst               io.WriteSeeker
+	chunks            []png.PngChunk
+	embeddingDepth    types.BitIndex
+	pngInfo           png.PngInfo
+	embeddingCapacity int
 }
 
 func (e *PngEncoder) Capacity() int64
@@ -50,12 +51,17 @@ func NewPngEncoder(src io.ReadSeeker, dst io.WriteSeeker, bitDepth types.BitInde
 	if err != nil {
 		return
 	}
+	enc.pngInfo = pngInfo
 
 	if uint8(bitDepth) > pngInfo.BitDepth-1 {
 		return nil, errors.ErrBitDepthTooHigh
 	}
 
-	enc.pngInfo = pngInfo
+	
+
+	for _, c := enc.chunks {
+		if c.
+	}
 
 	// TODO: get steganography capacity. each rgb pixel can hold 1 bit
 	// TODO: write png, ihdr and any other header before the first idat to the dst

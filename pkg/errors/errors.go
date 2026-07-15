@@ -1,5 +1,4 @@
 package errors
-package errors
 
 import "errors"
 
