@@ -19,7 +19,6 @@ type PngEncoder struct {
 	remainigCapacity  int64 // bytes
 
 	currentChunk int
-	// TODO: add a field to track which idat chunk we operating on
 	// TODO: add a reuseable buffer where we can store the idat line chunk
 }
 
@@ -28,8 +27,8 @@ func (e *PngEncoder) Capacity() int64 {
 }
 
 // func (e *PngEncoder) Remaining() int64
-func NewPngEncoder(src io.ReadSeeker, dst io.WriteSeeker, bitDepth types.BitIndex) (enc *PngEncoder, err error) {
 
+func NewPngEncoder(src io.ReadSeeker, dst io.WriteSeeker, bitDepth types.BitIndex) (enc *PngEncoder, err error) {
 	if bitDepth > 7 {
 		return nil, errors.ErrInvalidBitDepth
 	}
