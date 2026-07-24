@@ -1,6 +1,7 @@
 package stegano
 
 import (
+	"fmt"
 	"io"
 	"slices"
 
@@ -10,11 +11,14 @@ import (
 )
 
 type PngEncoder struct {
-	src               io.ReadSeeker
-	dst               io.WriteSeeker
-	chunks            []png.PngChunk
-	embeddingDepth    types.BitIndex
-	pngInfo           png.PngInfo
+	src io.ReadSeeker
+	dst io.WriteSeeker
+
+	chunks []png.PngChunk
+
+	embeddingDepth types.BitIndex
+	pngInfo        png.PngInfo
+
 	embeddingCapacity int64 // bytes
 	remainigCapacity  int64 // bytes
 
@@ -76,32 +80,31 @@ func NewPngEncoder(src io.ReadSeeker, dst io.WriteSeeker, bitDepth types.BitInde
 		return nil, errors.ErrBitDepthTooHigh
 	}
 
-	firstIDATChunkIndex := -1
-	for i, c := range enc.chunks {
-		if !slices.Equal(c.Type, types.IDAT) {
-			continue
-		}
-
-		if firstIDATChunkIndex == -1 {
-			firstIDATChunkIndex = i
-		}
-
-		enc.embeddingCapacity += int64(c.Length / 8)
-	}
-	enc.remainigCapacity = enc.embeddingCapacity
-
 	_, err = dst.Write(png.PngSignature)
 	if err != nil {
 		return
 	}
 
-	for i := 0; i < firstIDATChunkIndex; i++ {
-		err = png.WriteChunk(src, dst, enc.chunks[i])
-		if err != nil {
-			return nil, errors.ErrFailedToWriteChunk
+	enc.currentChunk = -1
+	for i, c := range enc.chunks {
+		if slices.Equal(c.Type, types.IDAT) {
+			if enc.currentChunk == -1 {
+				enc.currentChunk = i
+			}
+
+			enc.embeddingCapacity += int64(c.Length / 8)
+			continue
+		}
+
+		if enc.currentChunk == -1 {
+			err = png.WriteChunk(src, dst, enc.chunks[i])
+			if err != nil {
+				return nil, errors.ErrFailedToWriteChunk
+			}
 		}
 	}
-	enc.currentChunk = firstIDATChunkIndex
+
+	enc.remainigCapacity = enc.embeddingCapacity
 
 	return
 }
@@ -117,7 +120,16 @@ func (e *PngEncoder) Flush() (err error) {
 	return
 }
 
-// TODO: remember png idat capacity is influenced by bit depth in the ihdr header. some pngs can be 16 bit per channel or 1 bit per channel. factor this in when processing the idat lines and encoding the bits
-// func (e *PngEncoder) Write(p []byte) (n int, err error) {
-// 	return
-// }
+func (e *PngEncoder) Write(p []byte) (n int, err error) {
+	if len(p) > int(e.remainigCapacity) {
+		return 0, fmt.Errorf("no space left")
+	}
+
+	return
+}
+
+
+// IDEA: to reduce detectability we can pad the data with zero bytes causing the data to be spread apart
+// this carries a few nuances
+// since we dont know how much data the caller want to embed it will be hard to estimate how much padding to add. what if they want to embed more and they cant because we added to much padding
+// second nuance is that we need a reliable way to add and deocde the padding. we need to create a way to introduce padding to where the bits are spread apart and that we can reverse back into a full piece of data

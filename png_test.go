@@ -4,14 +4,12 @@ import (
 	"errors"
 	"io"
 	"os"
+	"slices"
 	"testing"
 
 	ierr "github.com/501urchin/stegano/v2/pkg/errors"
 	"github.com/501urchin/stegano/v2/pkg/types"
 )
-
-// TestCase for PngEncode
-// test for idat line in different spot eg chunk index 10 instead of 0
 
 // TestCase for Flush
 // test if dst image fully matches src
@@ -109,6 +107,67 @@ func TestNewPngEncoder(t *testing.T) {
 		_, err = NewPngEncoder(srcFile, dstFile, 0)
 		if !errors.Is(err, ierr.ErrMissingIHDR) {
 			t.Errorf("failed to return the desired error: want %q but got %q", ierr.ErrMissingIHDR, err)
+		}
+
+		resetFile(srcFile)
+		resetFile(dstFile)
+	})
+
+	t.Run("wrote chunks before IDAT to dst", func(t *testing.T) {
+		var png = []byte{
+			0x89, 0x50, 0x4E, 0x47,
+			0x0D, 0x0A, 0x1A, 0x0A,
+
+			0x00, 0x00, 0x00, 0x0D,
+			0x49, 0x48, 0x44, 0x52,
+			0x00, 0x00, 0x00, 0x01,
+			0x00, 0x00, 0x00, 0x01,
+			0x08,
+			0x06,
+			0x00,
+			0x00,
+			0x00,
+			31, 21, 196, 137,
+
+			0x00, 0x00, 0x00, 0x0D,
+			0x49, 0x44, 0x41, 0x54,
+			0x78, 0x9C,
+			0x63, 0x60, 0x60, 0x60,
+			0xF8, 0x0F, 0x00, 0x01,
+			0x04, 0x01, 0x00,
+			95, 229, 195, 75,
+
+			0x00, 0x00, 0x00, 0x00,
+			0x49, 0x45, 0x4E, 0x44,
+			0xAE, 0x42, 0x60, 0x82,
+		}
+
+		_, err = srcFile.Write(png)
+		if err != nil {
+			t.Fatal(err)
+		}
+		srcFile.Sync()
+
+		_, err = NewPngEncoder(srcFile, dstFile, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		dstFile.Sync()
+
+		_, err = dstFile.Seek(0, io.SeekStart)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		buf := make([]byte, 33)
+
+		_, err = dstFile.Read(buf)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if !slices.Equal(buf, png[:33]) {
+			t.Error("failed to write chunks before IDAT to dst")
 		}
 	})
 
