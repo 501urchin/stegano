@@ -2,11 +2,6 @@ package png
 
 import (
 	"bytes"
-	"encoding/binary"
-	"fmt"
-	"image"
-	"image/color"
-	"image/png"
 	"io"
 	"os"
 	"path/filepath"
@@ -14,82 +9,32 @@ import (
 	"testing"
 )
 
-func makePng(path string, width, height int) (err error) {
-	img := image.NewRGBA(image.Rect(0, 0, width, height))
+var png = []byte{
+	0x89, 0x50, 0x4E, 0x47,
+	0x0D, 0x0A, 0x1A, 0x0A,
 
-	for y := range height {
-		for x := range width {
-			c := color.RGBA{
-				R: uint8(x * 25),
-				G: uint8(y * 25),
-				B: 0,
-				A: 255,
-			}
-			img.Set(x, y, c)
-		}
-	}
+	0x00, 0x00, 0x00, 0x0D,
+	0x49, 0x48, 0x44, 0x52,
+	0x00, 0x00, 0x00, 0x01,
+	0x00, 0x00, 0x00, 0x01,
+	0x08,
+	0x06,
+	0x00,
+	0x00,
+	0x00,
+	31, 21, 196, 137,
 
-	file, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
+	0x00, 0x00, 0x00, 0x0D,
+	0x49, 0x44, 0x41, 0x54,
+	0x78, 0x9C,
+	0x63, 0x60, 0x60, 0x60,
+	0xF8, 0x0F, 0x00, 0x01,
+	0x04, 0x01, 0x00,
+	95, 229, 195, 75,
 
-	if err := png.Encode(file, img); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func encode(newFileName, oldFileName string, chunks []PngChunk) (err error) {
-	newFile, err := os.Create(newFileName)
-	if err != nil {
-		return err
-	}
-	defer newFile.Close()
-
-	oldFile, err := os.Open(oldFileName)
-	if err != nil {
-		return
-	}
-	defer oldFile.Close()
-
-	_, err = newFile.Write(PngSignature)
-	if err != nil {
-		return err
-	}
-
-	uint32Buf := make([]byte, 4)
-	for i := range chunks {
-		binary.BigEndian.PutUint32(uint32Buf, chunks[i].Length)
-		_, err = newFile.Write(uint32Buf)
-		if err != nil {
-			return err
-		}
-
-		_, err = newFile.Write(chunks[i].Type)
-		if err != nil {
-			return err
-		}
-
-		_, err = oldFile.Seek(int64(chunks[i].DataStartIdx), io.SeekStart)
-		if err != nil {
-			return
-		}
-
-		if written, cErr := io.CopyN(newFile, oldFile, int64(chunks[i].Length)); cErr != nil || written != int64(chunks[i].Length) {
-			return fmt.Errorf("failed to copy correct amount of bytes")
-		}
-
-		binary.BigEndian.PutUint32(uint32Buf, chunks[i].CRC)
-		_, err = newFile.Write(uint32Buf)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	0x00, 0x00, 0x00, 0x00,
+	0x49, 0x45, 0x4E, 0x44,
+	0xAE, 0x42, 0x60, 0x82,
 }
 
 func TestValidateChunk(t *testing.T) {
@@ -107,49 +52,51 @@ func TestValidateChunk(t *testing.T) {
 	}
 }
 
-func TestParsePNG(t *testing.T) {
-	tFilePath := filepath.Join(t.TempDir(), "test.png")
-	err := makePng(tFilePath, 5, 5)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	file, err := os.Open(tFilePath)
+func TestDecodeChunks(t *testing.T) {
+	tFilePath := filepath.Join(t.TempDir() + "file.png")
+	file, err := os.Create(tFilePath)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer file.Close()
 
+	_, err = file.Write(png)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = file.Sync()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	t.Run("valid decode", func(t *testing.T) {
-		chunks, err := ParsePNG(file)
-		if err != nil {
-			t.Fatal(err)
-		}
-		nfileName := filepath.Join(t.TempDir(), "nf.png")
-
-		err = encode(nfileName, tFilePath, chunks)
+		chunks, err := DecodeChunks(file)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		ob, err := os.ReadFile(tFilePath)
-		if err != nil {
-			t.Fatal(err)
-		}
-		nb, err := os.ReadFile(nfileName)
-		if err != nil {
-			t.Fatal(err)
+		if lc := len(chunks); lc != 3 {
+			t.Fatalf("failed to return correct number of chunks: want %d, got %d", 3, lc)
 		}
 
-		if !slices.Equal(ob, nb) {
-			t.Error("failed to decode the correct chunks from png")
+		if !slices.Equal(chunks[0].Type, []byte{0x49, 0x48, 0x44, 0x52}) {
+			t.Error("chunk index 0 doesnt match expected chunkt type")
+		}
+
+		if !slices.Equal(chunks[1].Type, []byte{0x49, 0x44, 0x41, 0x54}) {
+			t.Error("chunk index 1 doesnt match expected chunkt type")
+		}
+
+		if !slices.Equal(chunks[2].Type, []byte{0x49, 0x45, 0x4E, 0x44}) {
+			t.Error("chunk index 2 doesnt match expected chunkt type")
 		}
 
 	})
 
 }
 
-func BenchmarkParsePNG(b *testing.B) {
+func BenchmarkDecodeChunks(b *testing.B) {
 	file, err := os.Open("image.png")
 	if err != nil {
 		panic(err)
@@ -158,20 +105,11 @@ func BenchmarkParsePNG(b *testing.B) {
 	b.Run("custom", func(b *testing.B) {
 		for b.Loop() {
 			_, _ = file.Seek(0, io.SeekStart)
-			_, err = ParsePNG(file)
+			_, err = DecodeChunks(file)
 			if err != nil {
 				b.Fatal(err)
 			}
 		}
 	})
 
-	b.Run("image.Image version", func(b *testing.B) {
-		for b.Loop() {
-			_, _ = file.Seek(0, io.SeekStart)
-			_, err = png.Decode(file)
-			if err != nil {
-				b.Fatal(err)
-			}
-		}
-	})
 }

@@ -9,6 +9,7 @@ import (
 	"slices"
 
 	pngerrors "github.com/501urchin/stegano/v2/pkg/errors"
+	"github.com/501urchin/stegano/v2/pkg/types"
 )
 
 func validateChunk(chunk PngChunk, file io.ReadSeeker) (err error) {
@@ -37,9 +38,14 @@ func validateChunk(chunk PngChunk, file io.ReadSeeker) (err error) {
 	return nil
 }
 
-func ParsePNG(file io.ReadSeeker) (chunks []PngChunk, err error) {
+func DecodeChunks(file io.ReadSeeker) (chunks []PngChunk, err error) {
 	if file == nil {
 		return nil, pngerrors.ErrNotPNG
+	}
+
+	_, err = file.Seek(0, io.SeekStart)
+	if err != nil {
+		return
 	}
 
 	var buf = make([]byte, 8)
@@ -62,7 +68,7 @@ func ParsePNG(file io.ReadSeeker) (chunks []PngChunk, err error) {
 		if err != nil && !errors.Is(err, io.EOF) {
 			return chunks, errors.Join(pngerrors.ErrFailedToReadTypeAndLength, err)
 		}
-		
+
 		if errors.Is(err, io.EOF) {
 			if len(chunks) == 0 {
 				return nil, pngerrors.ErrMissingIHDR
@@ -103,7 +109,7 @@ func ParsePNG(file io.ReadSeeker) (chunks []PngChunk, err error) {
 
 		// TODO: figure out if there is a way to estimate how many chunks a png has so we can redouce allocs
 		chunks = append(chunks, c)
-		if string(c.Type) == "IEND" {
+		if slices.Equal(c.Type, types.IEND) {
 			break
 		}
 	}

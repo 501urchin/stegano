@@ -5,4 +5,5 @@ type ChunkType []byte
 var (
 	IHDR ChunkType = []byte("IHDR")
 	IDAT ChunkType = []byte("IDAT")
+	IEND ChunkType = []byte("IEND")
 )

@@ -54,7 +54,7 @@ func NewPngEncoder(src io.ReadSeeker, dst io.WriteSeeker, bitDepth types.BitInde
 		return nil, err
 	}
 
-	enc.chunks, err = png.ParsePNG(src)
+	enc.chunks, err = png.DecodeChunks(src)
 	if err != nil {
 		return
 	}
