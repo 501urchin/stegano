@@ -7,6 +7,8 @@ import (
 	"hash/crc32"
 	"io"
 	"slices"
+
+	pngerrors "github.com/501urchin/stegano/v2/pkg/errors"
 )
 
 func validateChunk(chunk PngChunk, file io.ReadSeeker) (err error) {
@@ -29,7 +31,7 @@ func validateChunk(chunk PngChunk, file io.ReadSeeker) (err error) {
 	}
 
 	if h.Sum32() != chunk.CRC {
-		return ErrCRCMismatch
+		return pngerrors.ErrCRCMismatch
 	}
 
 	return nil
@@ -37,7 +39,7 @@ func validateChunk(chunk PngChunk, file io.ReadSeeker) (err error) {
 
 func ParsePNG(file io.ReadSeeker) (chunks []PngChunk, err error) {
 	if file == nil {
-		return nil, ErrNotPNG
+		return nil, pngerrors.ErrNotPNG
 	}
 
 	var buf = make([]byte, 8)
@@ -45,11 +47,11 @@ func ParsePNG(file io.ReadSeeker) (chunks []PngChunk, err error) {
 	// read png signature
 	_, err = io.ReadFull(file, buf)
 	if err != nil {
-		return nil, errors.Join(ErrFailedToReadSignature, err)
+		return nil, errors.Join(pngerrors.ErrFailedToReadSignature, err)
 	}
 
 	if !slices.Equal(buf, PngSignature) {
-		return nil, ErrNotPNG
+		return nil, pngerrors.ErrNotPNG
 	}
 
 	var biggestChunkLen int
@@ -58,7 +60,15 @@ func ParsePNG(file io.ReadSeeker) (chunks []PngChunk, err error) {
 		// get len and type
 		_, err = io.ReadFull(file, buf[:8])
 		if err != nil && !errors.Is(err, io.EOF) {
-			return chunks, errors.Join(ErrFailedToReadTypeAndLength, err)
+			return chunks, errors.Join(pngerrors.ErrFailedToReadTypeAndLength, err)
+		}
+		
+		if errors.Is(err, io.EOF) {
+			if len(chunks) == 0 {
+				return nil, pngerrors.ErrMissingIHDR
+			}
+
+			break
 		}
 
 		chunkLength := binary.BigEndian.Uint32(buf[:4])
@@ -74,19 +84,19 @@ func ParsePNG(file io.ReadSeeker) (chunks []PngChunk, err error) {
 		// get start index of idat line for this chunk
 		dataStartIdx, intErr := file.Seek(0, io.SeekCurrent)
 		if intErr != nil {
-			return chunks, errors.Join(ErrFailedToSeek, err)
+			return chunks, errors.Join(pngerrors.ErrFailedToSeek, err)
 		}
 		c.DataStartIdx = int(dataStartIdx)
 
 		_, err = file.Seek(int64(c.Length), io.SeekCurrent)
 		if err != nil {
-			return chunks, errors.Join(ErrFailedToSeek, err)
+			return chunks, errors.Join(pngerrors.ErrFailedToSeek, err)
 		}
 
 		// get crc
 		_, err = io.ReadFull(file, buf[:4])
 		if err != nil {
-			return chunks, errors.Join(ErrFailedToReadCRC, err)
+			return chunks, errors.Join(pngerrors.ErrFailedToReadCRC, err)
 		}
 
 		c.CRC = binary.BigEndian.Uint32(buf[:4])
@@ -110,25 +120,23 @@ func ParsePNG(file io.ReadSeeker) (chunks []PngChunk, err error) {
 
 func GetChunkData(src io.ReadSeeker, c PngChunk) (data []byte, err error) {
 	if src == nil {
-		return nil, ErrSourceIsNil
+		return nil, pngerrors.ErrSourceIsNil
 	}
 
-
-
 	if c.Length == 0 {
-		return nil, ErrInvalidChunk
+		return nil, pngerrors.ErrInvalidChunk
 	}
 
 	_, err = src.Seek(int64(c.DataStartIdx), io.SeekStart)
 	if err != nil {
-		return nil, errors.Join(ErrFailedToSeek, err)
+		return nil, errors.Join(pngerrors.ErrFailedToSeek, err)
 	}
 
 	data = make([]byte, c.Length)
 
 	_, err = io.ReadFull(src, data)
 	if err != nil {
-		return nil, errors.Join(ErrFailedToReadChunkData, err)
+		return nil, errors.Join(pngerrors.ErrFailedToReadChunkData, err)
 	}
 
 	return data, nil

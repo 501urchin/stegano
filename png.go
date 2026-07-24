@@ -26,7 +26,9 @@ func (e *PngEncoder) Capacity() int64 {
 	return e.embeddingCapacity
 }
 
-// func (e *PngEncoder) Remaining() int64
+func (e *PngEncoder) Remaining() int64 {
+	return e.remainigCapacity
+}
 
 func NewPngEncoder(src io.ReadSeeker, dst io.WriteSeeker, bitDepth types.BitIndex) (enc *PngEncoder, err error) {
 	if bitDepth > 7 {
@@ -43,13 +45,21 @@ func NewPngEncoder(src io.ReadSeeker, dst io.WriteSeeker, bitDepth types.BitInde
 
 	enc = &PngEncoder{
 		embeddingDepth: bitDepth,
-		src: src,
-		dst: dst,
+		src:            src,
+		dst:            dst,
+	}
+
+	_, err = src.Seek(0, io.SeekStart)
+	if err != nil {
+		return nil, err
 	}
 
 	enc.chunks, err = png.ParsePNG(src)
 	if err != nil {
 		return
+	}
+	if len(enc.chunks) == 0 {
+		return nil, errors.ErrMissingIHDR
 	}
 
 	if !slices.Equal(enc.chunks[0].Type, types.IHDR) {
@@ -66,14 +76,14 @@ func NewPngEncoder(src io.ReadSeeker, dst io.WriteSeeker, bitDepth types.BitInde
 		return nil, errors.ErrBitDepthTooHigh
 	}
 
-	firstIDATChunk := -1
+	firstIDATChunkIndex := -1
 	for i, c := range enc.chunks {
 		if !slices.Equal(c.Type, types.IDAT) {
 			continue
 		}
 
-		if firstIDATChunk == -1 {
-			firstIDATChunk = i
+		if firstIDATChunkIndex == -1 {
+			firstIDATChunkIndex = i
 		}
 
 		enc.embeddingCapacity += int64(c.Length / 8)
@@ -85,13 +95,13 @@ func NewPngEncoder(src io.ReadSeeker, dst io.WriteSeeker, bitDepth types.BitInde
 		return
 	}
 
-	for i := 0; i < firstIDATChunk; i++ {
+	for i := 0; i < firstIDATChunkIndex; i++ {
 		err = png.WriteChunk(src, dst, enc.chunks[i])
 		if err != nil {
 			return nil, errors.ErrFailedToWriteChunk
 		}
 	}
-	enc.currentChunk = firstIDATChunk
+	enc.currentChunk = firstIDATChunkIndex
 
 	return
 }

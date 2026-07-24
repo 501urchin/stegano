@@ -3,6 +3,8 @@ package png
 import (
 	"encoding/binary"
 	"io"
+
+	pngerrors "github.com/501urchin/stegano/v2/pkg/errors"
 )
 
 // ParseIHDRChunk takes in the data line of the IHDR chunk
@@ -26,26 +28,26 @@ func ParseIHDRChunk(src io.ReadSeeker, c PngChunk) (PngInfo, error) {
 	case 1, 2, 4, 8, 16:
 		break
 	default:
-		return PngInfo{}, ErrInvalidPNGBitDepth
+		return PngInfo{}, pngerrors.ErrInvalidPNGBitDepth
 	}
 
 	switch info.ColorType {
 	case 0, 2, 3, 4, 6:
 		break
 	default:
-		return PngInfo{}, ErrInvalidPNGColorType
+		return PngInfo{}, pngerrors.ErrInvalidPNGColorType
 	}
 
 	if info.Compression != 0 {
-		return PngInfo{}, ErrInvalidPNGCompression
+		return PngInfo{}, pngerrors.ErrInvalidPNGCompression
 	}
 
 	if info.Filter != 0 {
-		return PngInfo{}, ErrInvalidPNGFilter
+		return PngInfo{}, pngerrors.ErrInvalidPNGFilter
 	}
 
 	if info.Interlace > 1 {
-		return PngInfo{}, ErrInvalidPNGInterlace
+		return PngInfo{}, pngerrors.ErrInvalidPNGInterlace
 	}
 
 	return info, nil

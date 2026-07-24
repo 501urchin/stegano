@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	pngerrors "github.com/501urchin/stegano/v2/pkg/errors"
 	"github.com/501urchin/stegano/v2/pkg/types"
 )
 
@@ -75,7 +76,7 @@ func TestParseIHDRChunkErrors(t *testing.T) {
 				0x00,
 				0x00, 0x00, 0x00, 0x00,
 			},
-			expected: ErrInvalidPNGColorType,
+			expected: pngerrors.ErrInvalidPNGColorType,
 		},
 		{
 			name: "invalid compression method",
@@ -91,7 +92,7 @@ func TestParseIHDRChunkErrors(t *testing.T) {
 				0x00,
 				0x00, 0x00, 0x00, 0x00,
 			},
-			expected: ErrInvalidPNGCompression,
+			expected: pngerrors.ErrInvalidPNGCompression,
 		},
 		{
 			name: "invalid filter method",
@@ -107,7 +108,7 @@ func TestParseIHDRChunkErrors(t *testing.T) {
 				0x00,
 				0x00, 0x00, 0x00, 0x00,
 			},
-			expected: ErrInvalidPNGFilter,
+			expected: pngerrors.ErrInvalidPNGFilter,
 		},
 		{
 			name: "invalid interlace method",
@@ -123,7 +124,7 @@ func TestParseIHDRChunkErrors(t *testing.T) {
 				0x02,
 				0x00, 0x00, 0x00, 0x00,
 			},
-			expected: ErrInvalidPNGInterlace,
+			expected: pngerrors.ErrInvalidPNGInterlace,
 		},
 	}
 
