@@ -8,13 +8,13 @@ import (
 )
 
 // ParseIHDRChunk takes in the data line of the IHDR chunk
-func ParseIHDRChunk(src io.ReadSeeker, c PngChunk) (ihdrData, error) {
+func ParseIHDRChunk(src io.ReadSeeker, c PngChunk) (IHDRData, error) {
 	data, err := GetChunkData(src, c)
 	if err != nil {
-		return ihdrData{}, err
+		return IHDRData{}, err
 	}
 
-	info := ihdrData{
+	info := IHDRData{
 		Width:       binary.BigEndian.Uint32(data[0:4]),
 		Height:      binary.BigEndian.Uint32(data[4:8]),
 		BitDepth:    data[8],
@@ -28,26 +28,26 @@ func ParseIHDRChunk(src io.ReadSeeker, c PngChunk) (ihdrData, error) {
 	case 1, 2, 4, 8, 16:
 		break
 	default:
-		return ihdrData{}, pngerrors.ErrInvalidPNGBitDepth
+		return IHDRData{}, pngerrors.ErrInvalidPNGBitDepth
 	}
 
 	switch info.ColorType {
 	case 0, 2, 3, 4, 6:
 		break
 	default:
-		return ihdrData{}, pngerrors.ErrInvalidPNGColorType
+		return IHDRData{}, pngerrors.ErrInvalidPNGColorType
 	}
 
 	if info.Compression != 0 {
-		return ihdrData{}, pngerrors.ErrInvalidPNGCompression
+		return IHDRData{}, pngerrors.ErrInvalidPNGCompression
 	}
 
 	if info.Filter != 0 {
-		return ihdrData{}, pngerrors.ErrInvalidPNGFilter
+		return IHDRData{}, pngerrors.ErrInvalidPNGFilter
 	}
 
 	if info.Interlace > 1 {
-		return ihdrData{}, pngerrors.ErrInvalidPNGInterlace
+		return IHDRData{}, pngerrors.ErrInvalidPNGInterlace
 	}
 
 	return info, nil

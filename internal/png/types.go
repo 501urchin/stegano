@@ -1,3 +1,4 @@
+// Package png contains utilities for handling png images
 package png
 
 type PngChunk struct {
@@ -7,7 +8,7 @@ type PngChunk struct {
 	CRC          uint32
 }
 
-type ihdrData struct {
+type IHDRData struct {
 	Width       uint32
 	Height      uint32
 	BitDepth    uint8 // 1, 2, 4, 8, 16
