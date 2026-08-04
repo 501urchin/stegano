@@ -120,12 +120,12 @@ func DecodeChunks(file io.ReadSeeker) (chunks []PngChunk, err error) {
 	}
 
 
-	// for _, c := range chunks {
-	// 	err = validateChunk(c, file)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// }
+	for _, c := range chunks {
+		err = validateChunk(c, file)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	return
 }
