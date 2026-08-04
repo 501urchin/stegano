@@ -1,10 +1,5 @@
 package png
 
-import (
-	"hash"
-	"io"
-)
-
 type PngChunk struct {
 	Length       uint32
 	Type         []byte
@@ -20,13 +15,6 @@ type ihdrData struct {
 	Compression uint8
 	Filter      uint8
 	Interlace   uint8
-}
-
-type pngDecoder struct {
-	check      hash.Hash32
-	imageInfo  ihdrData
-	zlibReader io.ReadCloser
-	
 }
 
 var (

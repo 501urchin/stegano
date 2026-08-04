@@ -22,6 +22,11 @@ func NewIdatReader(src io.ReadSeeker, chunks []PngChunk) (reader *idatReader, er
 		return
 	}
 
+	_, err = src.Seek(0, io.SeekStart)
+	if err != nil {
+		return
+	}
+
 	if src == nil {
 		return nil, pngerrors.ErrSourceIsNil
 	}
@@ -33,10 +38,15 @@ func NewIdatReader(src io.ReadSeeker, chunks []PngChunk) (reader *idatReader, er
 		currentChunkSize: 0,
 		chunkOffset:      0,
 	}, nil
+
+}
+
+func (r *idatReader) Close() (err error) {
+	return nil
 }
 
 func (r *idatReader) prepareNextIdat() (err error) {
-	for i := r.currentChunk+1; i < len(r.imageChunks); i++ {
+	for i := r.currentChunk + 1; i < len(r.imageChunks); i++ {
 		if slices.Equal(r.imageChunks[i].Type, types.IEND) {
 			return io.EOF
 		}
