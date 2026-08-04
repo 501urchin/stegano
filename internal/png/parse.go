@@ -12,9 +12,15 @@ import (
 	"github.com/501urchin/stegano/v2/pkg/types"
 )
 
+func NewPNGDecoder() pngDecoder {
+	return pngDecoder{
+		check:     crc32.NewIEEE(),
+		imageInfo: ihdrData{},
+	}
+}
+
 func validateChunk(chunk PngChunk, file io.ReadSeeker) (err error) {
 	h := crc32.NewIEEE()
-
 	_, err = file.Seek(int64(chunk.DataStartIdx), io.SeekStart)
 	if err != nil {
 		return
@@ -61,7 +67,6 @@ func DecodeChunks(file io.ReadSeeker) (chunks []PngChunk, err error) {
 	}
 
 	var biggestChunkLen int
-
 	for {
 		// get len and type
 		_, err = io.ReadFull(file, buf[:8])
@@ -114,12 +119,13 @@ func DecodeChunks(file io.ReadSeeker) (chunks []PngChunk, err error) {
 		}
 	}
 
-	for _, c := range chunks {
-		err = validateChunk(c, file)
-		if err != nil {
-			return nil, err
-		}
-	}
+
+	// for _, c := range chunks {
+	// 	err = validateChunk(c, file)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// }
 
 	return
 }

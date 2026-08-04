@@ -29,7 +29,7 @@ func TestParseIHDRChunk(t *testing.T) {
 		// CRC (for "IHDR" + data)
 		0x1F, 0x15, 0xC4, 0x89,
 	}
-	expected := PngInfo{
+	expected := ihdrData{
 		Width:       1,
 		Height:      1,
 		BitDepth:    8,

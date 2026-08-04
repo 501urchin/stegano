@@ -1,0 +1,197 @@
+package png
+
+import (
+	"bytes"
+	"io"
+	"slices"
+	"testing"
+)
+
+func TestPngDecoder(t *testing.T) {
+	tests := []struct {
+		name     string
+		image    []byte
+		expected []byte
+		bytes    int
+	}{
+		{
+			name:     "single idat chunk",
+			expected: []byte{'h', 'e', 'l', 'l', 'o'},
+			bytes:    5,
+			image: []byte{
+				// PNG signature
+				0x89, 0x50, 0x4E, 0x47,
+				0x0D, 0x0A, 0x1A, 0x0A,
+
+				// IHDR (fake 1x1)
+				0x00, 0x00, 0x00, 0x0D,
+				0x49, 0x48, 0x44, 0x52,
+				0x00, 0x00, 0x00, 0x01,
+				0x00, 0x00, 0x00, 0x01,
+				0x08, 0x06,
+				0x00, 0x00, 0x00,
+				0, 0, 0, 0,
+
+				// IDAT length = 5
+				0x00, 0x00, 0x00, 0x05,
+				0x49, 0x44, 0x41, 0x54,
+				'h', 'e', 'l', 'l', 'o',
+				0, 0, 0, 0,
+
+				// IEND
+				0x00, 0x00, 0x00, 0x00,
+				0x49, 0x45, 0x4E, 0x44,
+				0, 0, 0, 0,
+			},
+		},
+		{
+			name:     "multiple idat chunks",
+			expected: []byte{'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd'},
+			bytes:    11,
+			image: []byte{
+				// PNG signature
+				0x89, 0x50, 0x4E, 0x47,
+				0x0D, 0x0A, 0x1A, 0x0A,
+
+				// IHDR
+				0x00, 0x00, 0x00, 0x0D,
+				0x49, 0x48, 0x44, 0x52,
+				0x00, 0x00, 0x00, 0x01,
+				0x00, 0x00, 0x00, 0x01,
+				0x08, 0x06,
+				0x00, 0x00, 0x00,
+				0, 0, 0, 0,
+
+				// IDAT "hello"
+				0x00, 0x00, 0x00, 0x05,
+				0x49, 0x44, 0x41, 0x54,
+				'h', 'e', 'l', 'l', 'o',
+				0, 0, 0, 0,
+
+				// IDAT " world"
+				0x00, 0x00, 0x00, 0x06,
+				0x49, 0x44, 0x41, 0x54,
+				' ', 'w', 'o', 'r', 'l', 'd',
+				0, 0, 0, 0,
+
+				// IEND
+				0x00, 0x00, 0x00, 0x00,
+				0x49, 0x45, 0x4E, 0x44,
+				0, 0, 0, 0,
+			},
+		},
+		{
+			name:     "boundary crossing",
+			expected: []byte{'a', 'b', 'c', 'd', 'e', 'f', 'g'},
+			bytes:    7,
+			image: []byte{
+				// signature
+				0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+
+				// IHDR
+				0, 0, 0, 13,
+				'I', 'H', 'D', 'R',
+				0, 0, 0, 1,
+				0, 0, 0, 1,
+				8, 6, 0, 0, 0,
+				0, 0, 0, 0,
+
+				// IDAT "abc"
+				0, 0, 0, 3,
+				'I', 'D', 'A', 'T',
+				'a', 'b', 'c',
+				0, 0, 0, 0,
+
+				// IDAT "defg"
+				0, 0, 0, 4,
+				'I', 'D', 'A', 'T',
+				'd', 'e', 'f', 'g',
+				0, 0, 0, 0,
+
+				// IEND
+				0, 0, 0, 0,
+				'I', 'E', 'N', 'D',
+				0, 0, 0, 0,
+			},
+		},
+		{
+			name:     "ignore non idat chunks",
+			expected: []byte{'a', 'b', 'c', 'd', 'e', 'f'},
+			bytes:    6,
+			image: []byte{
+				// PNG signature
+				0x89, 0x50, 0x4E, 0x47,
+				0x0D, 0x0A, 0x1A, 0x0A,
+
+				// IHDR
+				0x00, 0x00, 0x00, 0x0D,
+				0x49, 0x48, 0x44, 0x52,
+				0x00, 0x00, 0x00, 0x01,
+				0x00, 0x00, 0x00, 0x01,
+				0x08,
+				0x06,
+				0x00,
+				0x00,
+				0x00,
+				0x00, 0x00, 0x00, 0x00,
+
+				// IDAT "abc"
+				0x00, 0x00, 0x00, 0x03,
+				0x49, 0x44, 0x41, 0x54,
+				'a', 'b', 'c',
+				0x00, 0x00, 0x00, 0x00,
+
+				// tEXt "ignored"
+				0x00, 0x00, 0x00, 0x07,
+				0x74, 0x45, 0x58, 0x74,
+				'i', 'g', 'n', 'o', 'r', 'e', 'd',
+				0x00, 0x00, 0x00, 0x00,
+
+				// IDAT "def"
+				0x00, 0x00, 0x00, 0x03,
+				0x49, 0x44, 0x41, 0x54,
+				'd', 'e', 'f',
+				0x00, 0x00, 0x00, 0x00,
+
+				// IEND
+				0x00, 0x00, 0x00, 0x00,
+				0x49, 0x45, 0x4E, 0x44,
+				0x00, 0x00, 0x00, 0x00,
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			imageReader := bytes.NewReader(test.image)
+
+			br, err := DecodeChunks(imageReader)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			_, err = imageReader.Seek(0, io.SeekStart)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			idatReader, err := NewIdatReader(imageReader, br)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			result := make([]byte, test.bytes)
+			expected := test.expected
+
+			_, err = idatReader.Read(result)
+			if err != nil {
+				t.Error(err)
+			}
+
+			if !slices.Equal(result, expected) {
+				t.Errorf("failed to yield expected result. (expected: %q, result: %q)", expected, result)
+			}
+		})
+	}
+
+}
