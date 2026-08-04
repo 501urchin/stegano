@@ -167,7 +167,7 @@ func TestNewPngEncoder(t *testing.T) {
 		}
 
 		if !slices.Equal(buf, png[:33]) {
-			t.Error("failed to write chunks before IDAT to dst")
+			t.Errorf("failed to write chunks before IDAT to dst. (\nExpected: %q, \nBut got: %q)", png[:33], buf)
 		}
 	})
 
