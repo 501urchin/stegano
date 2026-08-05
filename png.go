@@ -15,6 +15,7 @@ type pngEncoder struct {
 	crc        hash.Hash32
 	imageInfo  png.IHDRData
 	zlibReader io.ReadCloser
+	dstWriter  io.Writer
 }
 
 func NewPngEncoder(src io.ReadSeeker, dst io.Writer, bitDepth types.BitIndex) (d *pngEncoder, err error) {
@@ -57,7 +58,7 @@ func NewPngEncoder(src io.ReadSeeker, dst io.Writer, bitDepth types.BitIndex) (d
 	if err != nil {
 		return
 	}
-	
+
 	currentChunk := -1
 	for i, c := range chunks {
 		if slices.Equal(c.Type, types.IDAT) {
@@ -81,10 +82,12 @@ func NewPngEncoder(src io.ReadSeeker, dst io.Writer, bitDepth types.BitIndex) (d
 		crc:        crc32.NewIEEE(),
 		imageInfo:  ihdrData,
 		zlibReader: idatReader,
+		dstWriter:  dst,
 	}, nil
 }
 
-func (d *pngEncoder) Embed(b []byte) (err error) {
-
+func (d *pngEncoder) Write(b []byte) (err error) {
+	
+	// d.zlibReader.Read()
 	return
 }

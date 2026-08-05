@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"path/filepath"
 	"slices"
 	"testing"
 
@@ -171,4 +172,26 @@ func TestNewPngEncoder(t *testing.T) {
 		}
 	})
 
+}
+
+func TestWrite(t *testing.T) {
+	file, err := os.Open("image.png")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+
+	tFileName := filepath.Join(t.TempDir(), "oeinro.png")
+	ofile, err := os.Create(tFileName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ofile.Close()
+
+	encode, err := NewPngEncoder(file, ofile, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	encode.Write([]byte("hello world"))
 }
