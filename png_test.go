@@ -193,5 +193,8 @@ func TestWrite(t *testing.T) {
 		t.Fatal(err)
 	}
 
+
+
 	encode.Write([]byte("hello world"))
+
 }

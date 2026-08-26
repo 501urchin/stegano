@@ -36,6 +36,27 @@ func BytePerRow(width uint32, interlace, color, bitdepth uint8) (int, error) {
 	return bytes + 1, nil
 }
 
+func BitsPerPixel(colorType uint8, bitDepth int) int {
+	var channels int
+
+	switch colorType {
+	case 0:
+		channels = 1
+	case 2:
+		channels = 3
+	case 3:
+		channels = 1
+	case 4:
+		channels = 2
+	case 6:
+		channels = 4
+	default:
+		panic("invalid PNG color type")
+	}
+
+	return channels * bitDepth
+}
+
 func ReverseNoneFilter(currentRow, previousRow []byte, bpp int) []byte {
 	if len(currentRow) == 0 {
 		return nil
@@ -77,7 +98,7 @@ func ReverseNoneFilter(currentRow, previousRow []byte, bpp int) []byte {
 			up := byte(0)
 
 			if i > bpp {
-				left = out[i-bpp]  
+				left = out[i-bpp]
 			}
 
 			if len(previousRow) > 0 {
